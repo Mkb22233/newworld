@@ -3,159 +3,150 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>KBC Quiz with Response Review</title>
+<title>KBC Quiz Game (Odia)</title>
 <style>
-  body { font-family: Arial, sans-serif; background: #f0f8ff; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
-  #container { background: #fff; padding: 20px; border-radius: 10px; width: 600px; box-shadow: 0 0 10px rgba(0,0,0,0.3); overflow-y: auto; max-height: 90vh; }
-  h2 { margin-bottom: 20px; }
-  input { width: 95%; padding: 10px; margin: 5px 0; font-size: 16px; border-radius: 5px; border: 1px solid #333; }
-  button { display: block; width: 100%; padding: 10px; margin: 10px 0; font-size: 16px; border-radius: 5px; border: 1px solid #333; cursor: pointer; }
-  button:hover { background: #87cefa; color: #fff; }
-  #level { font-weight: bold; margin-bottom: 10px; }
-  .correct { color: green; font-weight: bold; }
-  .wrong { color: red; font-weight: bold; }
-  p { margin: 5px 0; }
+  body {
+    font-family: "Noto Sans Oriya", Arial, sans-serif;
+    background: linear-gradient(to right, #87CEFA, #f0f8ff);
+    display: flex; justify-content: center; align-items: center;
+    min-height: 100vh; margin: 0;
+  }
+  #container {
+    background: #fff; padding: 20px 30px; border-radius: 15px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.3); width: 90%; max-width: 600px;
+  }
+  h2 { text-align: center; color: #003366; }
+  input {
+    width: 95%; padding: 10px; margin: 5px 0;
+    font-size: 16px; border-radius: 5px; border: 1px solid #333;
+  }
+  button {
+    display: block; width: 100%; padding: 10px;
+    font-size: 16px; border-radius: 5px; border: none;
+    background: #0078D7; color: white; cursor: pointer; margin-top: 10px;
+  }
+  button:hover { background: #005fa3; }
+  .option {
+    padding: 10px; margin: 5px 0; border: 1px solid #ccc;
+    border-radius: 5px; cursor: pointer; transition: 0.3s;
+  }
+  .option:hover { background: #e0f7fa; }
+  .correct { background: #c8e6c9 !important; }
+  .wrong { background: #ffcdd2 !important; }
+  #score { text-align: center; font-size: 20px; color: #006400; }
 </style>
 </head>
 <body>
-
 <div id="container">
   <!-- Start Form -->
   <div id="start-form">
-    <h2>Welcome to NEW WORLD!</h2>
-    <input type="text" id="name" placeholder="Enter Your Name" required>
-    <input type="number" id="age" placeholder="Enter Your Age" required>
-    <input type="text" id="mobile" placeholder="Enter Mobile Number" required>
+    <h2>🌟 KBC ଓଡ଼ିଆ Quiz 🌟</h2>
+    <input type="text" id="name" placeholder="ନାମ" required>
+    <input type="number" id="age" placeholder="ବୟସ" required>
+    <input type="text" id="mobile" placeholder="ମୋବାଇଲ ନମ୍ବର" required>
     <button onclick="startQuiz()">Start Quiz</button>
   </div>
 
   <!-- Quiz Area -->
   <div id="quiz-area" style="display:none;">
-    <div id="level">Level 1</div>
-    <h2 id="question">Question will appear here</h2>
+    <div id="level"></div>
+    <h2 id="question"></h2>
     <div id="options"></div>
+    <button id="next-btn" onclick="nextQuestion()">Next Question ➡️</button>
+  </div>
+
+  <!-- Result Area -->
+  <div id="result-area" style="display:none;">
+    <h2>🎯 Quiz Completed!</h2>
+    <p id="score"></p>
+    <button onclick="location.reload()">Play Again</button>
   </div>
 </div>
 
 <script>
-// =========================
-// QUESTION BANK
-// =========================
 const questions = [
-  // 1–10: Arts & Culture
-  {q:"“ସତ୍ୟପାଥ” - ?", opts:["ମୂର୍ତ୍ତି","ସଙ୍ଗୀତ","କଳା","ପର୍ବ"], a:2},
-  {q:"ଓଡ଼ିଶାର ରାଜ୍ୟ ନୃତ୍ୟ କ’ଣ?", opts:["ଛାଉ","ଓଡିଶୀ","କଥକ","ଭରତନାଟ୍ୟମ"], a:1},
-  {q:"“ଜୟଦେବ” କେଉଁ ଗ୍ରନ୍ଥ ରଚନା କରିଥିଲେ?", opts:["ଗୀତଗୋବିନ୍ଦ","ମହାଭାରତ","ରାମାୟଣ","ସରଳା ମହାଭାରତ"], a:0},
-  {q:"ଓଡ଼ିଶାର ପ୍ରସିଦ୍ଧ ନୃତ୍ୟକଳା ଶିକ୍ଷା ସଂସ୍ଥା କ’ଣ?", opts:["କଳାକ୍ଷେତ୍ର","ଉଦୟନାଚାର୍ଯ୍ୟ ଆକାଦେମି","କଳା ଭବନ","ସଂଗୀତ ନିକେତନ"], a:1},
-  {q:"ଓଡ଼ିଶାର ପାଳା କ’ଣ ସହିତ ସମ୍ବନ୍ଧିତ?", opts:["ନୃତ୍ୟ","ସଙ୍ଗୀତ ଓ ଗାୟନ","ନାଟକ","ଚିତ୍ରକଳା"], a:1},
-  {q:"“ଧନୁ ଯାତ୍ରା” କେଉଁ ଜିଲ୍ଲାରେ ହୁଏ?", opts:["ବଲାଙ୍ଗିର","ପୁରୀ","କଟକ","ସମ୍ବଲପୁର"], a:3},
-  {q:"“ରଥଯାତ୍ରା” କେଉଁ ଦେବଙ୍କ ସହିତ ସମ୍ବନ୍ଧିତ?", opts:["ଜଗନ୍ନାଥ","ଶିବ","ବିଷ୍ଣୁ","ବ୍ରହ୍ମା"], a:0},
-  {q:"ଓଡ଼ିଶାର ରାଜ୍ୟ ସଙ୍ଗୀତ କ’ଣ?", opts:["ବନେ ବସି","ବନେ ବନେ ତୁଳସୀ","ଜୟ ଜଗନ୍ନାଥ","ବନେ ବସି ତୁଳସୀ"], a:2},
-  {q:"ଓଡ଼ିଶାର ପ୍ରସିଦ୍ଧ ହସ୍ତଶିଳ୍ପ କ’ଣ?", opts:["ପତ୍ତଚିତ୍ର","ଟେରାକୋଟା","ବାସ ଶିଳ୍ପ","ସବୁ"], a:3},
-  {q:"ପୁରୀ ମନ୍ଦିର କ’ଣ ଦେବଙ୍କ?", opts:["ଶିବ","ଜଗନ୍ନାଥ","କୃଷ୍ଣ","ବିଷ୍ଣୁ"], a:1},
-
-  // 11–20: Science
-  {q:"ଜଳର ରସାୟନିକ ସୂତ୍ର କ’ଣ?", opts:["H2O","CO2","O2","NaCl"], a:0},
-  {q:"ପୃଥିବୀର ସବୁଠାରୁ ନିକଟତମ ତାରା କ’ଣ?", opts:["ସୂର୍ଯ୍ୟ","ଚନ୍ଦ୍ର","ଧ୍ରୁବତାରା","ଶୁକ୍ର"], a:0},
-  {q:"ସବୁଜ ପତ୍ରରେ କ’ଣ ଥାଏ?", opts:["କ୍ଲୋରୋଫିଲ୍","ହିମୋଗ୍ଲୋବିନ୍","କାର୍ବନ୍","ନାଇଟ୍ରୋଜେନ୍"], a:0},
-  {q:"ମାନବ ଶରୀରରେ କ’ଣ ରକ୍ତକଣି ରହିଥାଏ?", opts:["RBC","DNA","RNA","ATP"], a:0},
-  {q:"ବିଦ୍ୟୁତ ଚାଳକ କ’ଣ?", opts:["ତାମା","କାଠ","ପ୍ଲାଷ୍ଟିକ","କାଗଜ"], a:0},
-  {q:"ଗୁରୁତ୍ୱାକର୍ଷଣ ବିଷୟରେ କେଉଁ ବିଜ୍ଞାନୀ ଖୋଜିଥିଲେ?", opts:["ନ୍ୟୁଟନ୍","ଆଇନଷ୍ଟାଇନ୍","ଗାଲିଲିଓ","ମେଣ୍ଡେଲ୍"], a:0},
-  {q:"ଶକ୍ତିର ମାପକ ଏକକ କ’ଣ?", opts:["ଜୁଲ୍","ମିଟର୍","କିଲୋଗ୍ରାମ୍","ଲିଟର୍"], a:0},
-  {q:"ସୂର୍ଯ୍ୟରେ କ’ଣ ପ୍ରକ୍ରିୟା ହୁଏ?", opts:["ନ୍ୟୁକ୍ଲିଅର୍ ଫିଉସନ୍","ନ୍ୟୁକ୍ଲିଅର୍ ଫିସନ୍","ଦହନ","ଗଳନ"], a:0},
-  {q:"ପାଣି 100°C ରେ କ’ଣ ହୁଏ?", opts:["ଫୋଟେ","ବରଫ","ଗଳିଯାଏ","ବନ୍ଦହୁଏ"], a:0},
-  {q:"ଗ୍ୟାସ ରୂପରେ ଅକ୍ସିଜେନ୍ କ’ଣ କାମ କରେ?", opts:["ଶ୍ୱାସ-ପ୍ରଶ୍ୱାସ","ଜଳ ତିଆରି","ଶିତଳିକରଣ","ଗରମି"], a:0}
+  {q:"“ସତ୍ୟପାଥ” - ?", opts:["ମୂର୍ତ୍ତି","ସଙ୍ଗୀତ","କଳା","ପର୍ବ"], a:0},
+  {q:"ଓଡ଼ିଶାର ରାଜଧାନୀ କେଉଁଟି?", opts:["କଟକ","ଭୁବନେଶ୍ୱର","ପୁରୀ","ସମ୍ବଲପୁର"], a:1},
+  {q:"ଭାରତର ଜାତୀୟ ପକ୍ଷୀ କେଉଁଟି?", opts:["ମୟୂର","କୋଯିଲି","କାଉ","ହନ୍ସ"], a:0},
+  {q:"ଅଶୋକ ଚକ୍ରର ରଙ୍ଗ କଣ?", opts:["ନୀଳ","ସବୁଜ","କେସରୀ","ଧଳା"], a:0},
+  {q:"ଜଗନ୍ନାଥ ମନ୍ଦିର କେଉଁଠି ଅଛି?", opts:["ଭୁବନେଶ୍ୱର","ପୁରୀ","କୋଣାର୍କ","କଟକ"], a:1},
+  {q:"‘ଗୀତା ଗୋବିନ୍ଦ’ କେଉଁଠି ରଚିଥିଲେ?", opts:["ଜୟଦେବ","ସାଳବେଗ","ଉପେନ୍ଦ୍ର ଭଞ୍ଜ","ଗଙ୍ଗାଧର ମେହେର"], a:0},
+  {q:"ଭାରତର ଜାତୀୟ ପଶୁ କେଉଁଟି?", opts:["ସିଂହ","ବାଘ","ହାତୀ","ମୟୂର"], a:1},
+  {q:"ରାଜଧାନୀ ଭୁବନେଶ୍ୱର ନିର୍ମାଣ କରିଥିଲେ?", opts:["ଓଟୋନିଲି","ଲେ କରବୁସିଅର","ବିଶ୍ବେଶ୍ୱର ରେଡ଼ି","ଲିଓ କୋଷ୍ଟ"], a:0},
+  {q:"‘ବନସାଧାରଣୀ’ କବିତାର ରଚୟିତା?", opts:["ଗଙ୍ଗାଧର ମେହେର","ମାଧୁସୂଦନ ରାଓ","ଜୟଦେବ","ଉପେନ୍ଦ୍ର ଭଞ୍ଜ"], a:0},
+  {q:"ଜଗନ୍ନାଥଙ୍କ ଭାଇ କିଏ?", opts:["ବଳଭଦ୍ର","ସୁଭଦ୍ରା","କୃଷ୍ଣ","ବିଷ୍ଣୁ"], a:0},
+  {q:"ସଂସଦ ଭବନ କେଉଁଠି ଅଛି?", opts:["କଟକ","ଦିଲ୍ଲୀ","ମୁମ୍ବାଇ","ଚେନ୍ନାଇ"], a:1},
+  {q:"ଭାରତର ଜାତୀୟ ଗୀତ କେଉଁଟି?", opts:["ବନ୍ଦେ ମାତରମ୍","ଜନ ଗଣ ମନ","ସାରେ ଜହାଁ ସେ ଅଛା","ଭାରତ ମାତା କି ଜୟ"], a:1},
+  {q:"ଭାରତର ପ୍ରଥମ ରାଷ୍ଟ୍ରପତି କିଏ?", opts:["ଡ଼ଃ ରାଜେନ୍ଦ୍ର ପ୍ରସାଦ","ଡ଼ଃ ରାଧାକୃଷ୍ଣନ","ନେହରୁ","ସରଦାର ପଟେଲ"], a:0},
+  {q:"ଓଡ଼ିଶା ଦିବସ କେବେ ପାଳନ କରାଯାଏ?", opts:["୧ ଏପ୍ରିଲ","୨୬ ଜାନୁଆରୀ","୧୫ ଅଗଷ୍ଟ","୨ ଅକ୍ଟୋବର"], a:0},
+  {q:"ଭାରତର ଜାତୀୟ ଧ୍ୱଜର ରଙ୍ଗ କେତେ?", opts:["ଦୁଇ","ଚାରି","ତିନି","ପାଞ୍ଚ"], a:2},
+  {q:"‘ତାପସି ରାଇ’ ଉପନ୍ୟାସ ରଚନା କରିଥିଲେ?", opts:["ଗୋପବନ୍ଧୁ ଦାସ","ଫକିର ମୋହନ ସେନାପତି","ପ୍ରଭାତ ନାଳିନୀ","ସାଳବେଗ"], a:1},
+  {q:"ଭାରତର ମୁଦ୍ରା କେଉଁଟି?", opts:["ଡଲାର","ରୁପି","ପାଉଣ୍ଡ","ୟୁରୋ"], a:1},
+  {q:"ଭାରତର ଜାତୀୟ ଗଛ କେଉଁଟି?", opts:["ବଟଗଛ","ଆମ୍ବଗଛ","ନିମ୍","ବାମ୍ବୁ"], a:0},
+  {q:"‘କୋଣାର୍କ ସୂର୍ଯ୍ୟ ମନ୍ଦିର’ କେଉଁଠି ଅଛି?", opts:["ପୁରୀ","କୋଣାର୍କ","ଭୁବନେଶ୍ୱର","କଟକ"], a:1},
+  {q:"ଜୟ ଜଗନ୍ନାଥ ରାଜଧାନୀ କେଉଁଟି?", opts:["ଭୁବନେଶ୍ୱର","କୋଣାର୍କ","ପୁରୀ","କଟକ"], a:0}
 ];
 
-// =========================
-// INITIALIZE QUIZ
-// =========================
-questions = questions.sort(() => 0.5 - Math.random()).slice(0, 20);
-let currentLevel = 0;
+let user = {};
+let current = 0;
 let score = 0;
-let playerName = "";
-let responses = [];
 
-// =========================
-// START QUIZ
-// =========================
 function startQuiz() {
-  const name = document.getElementById('name').value.trim();
-  const age = document.getElementById('age').value.trim();
-  const mobile = document.getElementById('mobile').value.trim();
+  user.name = document.getElementById('name').value.trim();
+  user.age = document.getElementById('age').value.trim();
+  user.mobile = document.getElementById('mobile').value.trim();
 
-  if(!name || !age || !mobile){
-    alert("ସମସ୍ତ ତଥ୍ୟ ଦିଅନ୍ତୁ।");
+  if(!user.name || !user.age || !user.mobile) {
+    alert("ଦୟାକରି ସମସ୍ତ ତଥ୍ୟ ପୂରଣ କରନ୍ତୁ।");
     return;
   }
 
-  playerName = name;
-  document.getElementById('start-form').style.display = "none";
-  document.getElementById('quiz-area').style.display = "block";
-  loadQuestion();
+  document.getElementById('start-form').style.display = 'none';
+  document.getElementById('quiz-area').style.display = 'block';
+  showQuestion();
 }
 
-// =========================
-// LOAD QUESTION
-// =========================
-function loadQuestion() {
-  if(currentLevel >= questions.length){
-    showResults();
-    return;
+function showQuestion() {
+  const qObj = questions[current];
+  document.getElementById('level').textContent = `Question ${current + 1} of ${questions.length}`;
+  document.getElementById('question').textContent = qObj.q;
+  
+  const optsDiv = document.getElementById('options');
+  optsDiv.innerHTML = '';
+  
+  qObj.opts.forEach((opt, i) => {
+    const div = document.createElement('div');
+    div.className = 'option';
+    div.textContent = `${String.fromCharCode(65+i)}. ${opt}`;
+    div.onclick = () => selectOption(i, div);
+    optsDiv.appendChild(div);
+  });
+}
+
+function selectOption(index, element) {
+  const qObj = questions[current];
+  const allOpts = document.querySelectorAll('.option');
+  allOpts.forEach(o => o.style.pointerEvents = "none");
+
+  if(index === qObj.a) {
+    element.classList.add('correct');
+    score++;
+  } else {
+    element.classList.add('wrong');
+    allOpts[qObj.a].classList.add('correct');
   }
-
-  const q = questions[currentLevel];
-  document.getElementById('level').innerText = "Level " + (currentLevel+1);
-  document.getElementById('question').innerText = q.q;
-
-  const optionsDiv = document.getElementById('options');
-  optionsDiv.innerHTML = "";
-  q.opts.forEach((opt, idx) => {
-    const btn = document.createElement('button');
-    btn.innerText = opt;
-    btn.onclick = () => checkAnswer(idx);
-    optionsDiv.appendChild(btn);
-  });
 }
 
-// =========================
-// CHECK ANSWER
-// =========================
-function checkAnswer(selected) {
-  const q = questions[currentLevel];
-  responses.push({
-    question: q.q,
-    options: q.opts,
-    correctAnswer: q.opts[q.a],
-    selectedAnswer: q.opts[selected],
-    isCorrect: selected === q.a
-  });
-
-  if(selected === q.a) score++;
-  currentLevel++;
-  loadQuestion();
-}
-
-// =========================
-// SHOW RESULTS
-// =========================
-function showResults() {
-  let responseHTML = responses.map((r, idx) => {
-    return `<p><strong>Q${idx+1}:</strong> ${r.question}<br>
-            <strong>Your Answer:</strong> ${r.selectedAnswer} 
-            <span class="${r.isCorrect ? 'correct' : 'wrong'}">(${r.isCorrect ? 'Correct' : 'Wrong'})</span><br>
-            <strong>Correct Answer:</strong> ${r.correctAnswer}</p>`;
-  }).join("");
-
-  document.getElementById('container').innerHTML = `
-    <h2>Quiz Completed! 🎉</h2>
-    <p>Thank you <strong>${playerName}</strong></p>
-    <p>Your Score: ${score} / ${questions.length}</p>
-    <h3>Review Your Answers:</h3>
-    ${responseHTML}`;
+function nextQuestion() {
+  if(current < questions.length - 1) {
+    current++;
+    showQuestion();
+  } else {
+    document.getElementById('quiz-area').style.display = 'none';
+    document.getElementById('result-area').style.display = 'block';
+    document.getElementById('score').textContent = `${user.name}, ଆପଣଙ୍କ ସ୍କୋର: ${score}/${questions.length}`;
+  }
 }
 </script>
-
 </body>
 </html>
-
