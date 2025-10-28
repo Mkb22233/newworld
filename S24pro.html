@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Samsung S24 Camera</title>
+<style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:#000;overflow:hidden;height:100vh}
+    .camera-container{position:relative;width:100%;height:100vh;background:#000}
+    #video{width:100%;height:100%;object-fit:cover}
+    .camera-overlay{position:absolute;top:0;left:0;right:0;bottom:0;pointer-events:none}
+    .top-bar{position:absolute;top:0;left:0;right:0;padding:20px;display:flex;justify-content:space-between;align-items:center;background:linear-gradient(180deg,rgba(0,0,0,0.6)0%,transparent 100%);pointer-events:all}
+    .icon-btn{width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,0.2);border:none;color:white;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;backdrop-filter:blur(10px)}
+    .icon-btn:active{transform:scale(0.9);background:rgba(255,255,255,0.3)}
+    .mode-selector{position:absolute;bottom:120px;left:0;right:0;display:flex;justify-content:center;gap:25px;pointer-events:all}
+    .mode-btn{background:none;border:none;color:rgba(255,255,255,0.6);font-size:15px;font-weight:500;cursor:pointer;padding:8px 12px;border-radius:20px;transition:all 0.3s}
+    .mode-btn.active{color:#fff;background:rgba(255,255,255,0.15)}
+    .bottom-controls{position:absolute;bottom:30px;left:0;right:0;display:flex;justify-content:space-around;align-items:center;padding:0 40px;pointer-events:all}
+    .gallery-btn{width:50px;height:50px;border-radius:8px;background:rgba(255,255,255,0.2);border:2px solid white;cursor:pointer;overflow:hidden;backdrop-filter:blur(10px)}
+    .gallery-btn canvas{width:100%;height:100%;object-fit:cover}
+    .capture-btn{width:75px;height:75px;border-radius:50%;background:white;border:5px solid rgba(255,255,255,0.3);cursor:pointer;transition:all 0.2s;box-shadow:0 0 20px rgba(255,255,255,0.3)}
+    .capture-btn:active{transform:scale(0.9)}
+    .flip-btn{width:50px;height:50px;border-radius:50%;background:rgba(255,255,255,0.2);border:none;color:white;font-size:24px;cursor:pointer;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(10px);transition:all 0.2s}
+    .flip-btn:active{transform:scale(0.9) rotate(180deg)}
+    .zoom-controls{position:absolute;bottom:200px;right:20px;display:flex;flex-direction:column;gap:10px;pointer-events:all}
+    .zoom-btn{width:45px;height:45px;border-radius:50%;background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.3);color:white;font-size:13px;font-weight:600;cursor:pointer;backdrop-filter:blur(10px);transition:all 0.2s}
+    .zoom-btn.active{background:rgba(255,255,255,0.4);border-color:white}
+    .flash-indicator{position:absolute;top:0;left:0;right:0;bottom:0;background:white;opacity:0;pointer-events:none;transition:opacity 0.1s}
+    .flash-indicator.active{opacity:0.9}
+    .download-notification{position:absolute;top:80px;left:50%;transform:translateX(-50%)translateY(-20px);background:rgba(0,0,0,0.8);color:white;padding:12px 24px;border-radius:25px;font-size:14px;opacity:0;pointer-events:none;transition:all 0.3s;backdrop-filter:blur(10px);z-index:1000}
+    .download-notification.show{opacity:1;transform:translateX(-50%)translateY(0)}
+    .no-camera{display:flex;flex-direction:column;justify-content:center;align-items:center;height:100vh;color:white;text-align:center;padding:20px}
+</style>
+</head>
+<body>
+<div class="camera-container">
+    <video id="video" autoplay playsinline></video>
+    <div class="flash-indicator" id="flash"></div>
+    <div class="download-notification" id="downloadNotif">📸 Photo saved!</div>
+
+    <div class="camera-overlay">
+        <div class="top-bar">
+            <div>
+                <button class="icon-btn" id="flashBtn">⚡</button>
+                <button class="icon-btn">⏱️</button>
+                <button class="icon-btn">3:4</button>
+            </div>
+            <button class="icon-btn">⚙️</button>
+        </div>
+
+        <div class="zoom-controls">
+            <button class="zoom-btn active" data-zoom="1">1x</button>
+            <button class="zoom-btn" data-zoom="2">2x</button>
+            <button class="zoom-btn" data-zoom="3">3x</button>
+        </div>
+
+        <div class="mode-selector">
+            <button class="mode-btn">PORTRAIT</button>
+            <button class="mode-btn active">PHOTO</button>
+            <button class="mode-btn">VIDEO</button>
+            <button class="mode-btn">MORE</button>
+        </div>
+
+        <div class="bottom-controls">
+            <button class="gallery-btn" id="galleryBtn"><canvas id="thumbnail"></canvas></button>
+            <button class="capture-btn" id="captureBtn"></button>
+            <button class="flip-btn" id="flipBtn">🔄</button>
+        </div>
+    </div>
+</div>
+
+<script>
+const video=document.getElementById('video');
+const captureBtn=document.getElementById('captureBtn');
+const flashIndicator=document.getElementById('flash');
+const flipBtn=document.getElementById('flipBtn');
+const flashBtn=document.getElementById('flashBtn');
+const thumbnail=document.getElementById('thumbnail');
+const galleryBtn=document.getElementById('galleryBtn');
+const zoomBtns=document.querySelectorAll('.zoom-btn');
+const downloadNotif=document.getElementById('downloadNotif');
+let stream=null,facingMode='user',flashEnabled=false,lastPhoto=null;
+
+async function startCamera(){
+    try{
+        if(stream){stream.getTracks().forEach(t=>t.stop());}
+        const constraints={video:{facingMode, width:{ideal:3840},height:{ideal:2160}},audio:false};
+        stream=await navigator.mediaDevices.getUserMedia(constraints);
+        video.srcObject=stream;
+    }catch(e){
+        document.body.innerHTML=`<div class='no-camera'><h2>Camera not available</h2><p>${e.message}</p></div>`;
+    }
+}
+
+function showDownloadNotification(){
+    downloadNotif.classList.add('show');
+    setTimeout(()=>downloadNotif.classList.remove('show'),2000);
+}
+
+function downloadPhoto(dataUrl){
+    const filename=`Samsung_S24_${new Date().toISOString().replace(/[:.]/g,'-')}.jpg`;
+    const a=document.createElement('a');
+    a.href=dataUrl;
+    a.download=filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    showDownloadNotification();
+}
+
+function capturePhoto(){
+    if(flashEnabled){
+        flashIndicator.classList.add('active');
+        setTimeout(()=>flashIndicator.classList.remove('active'),100);
+    }
+    const canvas=document.createElement('canvas');
+    canvas.width=video.videoWidth;
+    canvas.height=video.videoHeight;
+    const ctx=canvas.getContext('2d');
+    ctx.drawImage(video,0,0,canvas.width,canvas.height);
+    lastPhoto=canvas.toDataURL('image/jpeg',0.95);
+    updateThumbnail();
+    downloadPhoto(lastPhoto); // auto download photo
+    navigator.vibrate && navigator.vibrate(50);
+}
+
+function updateThumbnail(){
+    if(!lastPhoto)return;
+    const ctx=thumbnail.getContext('2d');
+    const img=new Image();
+    img.onload=()=>{thumbnail.width=50;thumbnail.height=50;ctx.drawImage(img,0,0,50,50);}
+    img.src=lastPhoto;
+}
+
+flipBtn.onclick=()=>{facingMode=facingMode==='user'?'environment':'user';startCamera();}
+flashBtn.onclick=()=>{flashEnabled=!flashEnabled;flashBtn.style.background=flashEnabled?'rgba(255,255,255,0.4)':'rgba(255,255,255,0.2)';}
+captureBtn.onclick=capturePhoto;
+galleryBtn.onclick=()=>{if(lastPhoto){const w=window.open();w.document.write(`<img src='${lastPhoto}' style='width:100%;background:#000'>`);}};
+
+zoomBtns.forEach(btn=>{
+    btn.onclick=async()=>{
+        zoomBtns.forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active');
+        const zoom=parseFloat(btn.dataset.zoom);
+        if(stream){
+            const track=stream.getVideoTracks()[0];
+            const cap=track.getCapabilities();
+            if(cap.zoom){await track.applyConstraints({advanced:[{zoom}]});}
+        }
+    };
+});
+
+startCamera();
+</script>
+</body>
+</html>
