@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Editable Excel-like Form — Add/Delete Columns</title>
+  <style>
+    body{font-family:Calibri,Arial,sans-serif;margin:0;padding:22px;background:#f3f6f2}
+    .container{max-width:1200px;margin:auto;background:#fff;padding:20px;border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,0.08)}
+    h1{text-align:center;color:#107c41;margin-bottom:14px}
+    .toolbar{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;align-items:center;margin-bottom:12px}
+    .left, .right{display:flex;gap:8px;align-items:center}
+    button{background:#107c41;color:#fff;border:none;padding:8px 12px;border-radius:6px;cursor:pointer;font-size:14px}
+    button.secondary{background:#fff;color:#107c41;border:1px solid #107c41}
+    button.warn{background:#e03a3a}
+    label{font-size:14px;color:#333}
+    select{padding:8px;border-radius:6px;border:1px solid #d0d7d3}
+    table{width:100%;border-collapse:collapse;margin-top:6px;font-size:15px}
+    th,td{border:1px solid #d0d7d3;padding:8px;text-align:left;vertical-align:top}
+    th{background:#107c41;color:#fff;font-weight:600}
+    tr:nth-child(even) td{background:#fbfdf9}
+    tr:hover td{background:#e9f5eb}
+    td input{width:100%;border:none;outline:none;padding:4px;background:transparent}
+    td input:focus{background:#fffbe6;box-shadow:inset 0 0 0 1px #107c41;border-radius:2px}
+    th[contenteditable]{min-width:120px}
+    .small{font-size:13px;padding:6px 8px}
+    .note{margin-top:10px;color:#555;font-size:13px}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Editable Excel-like Form — Add / Delete Columns</h1>
+
+    <div class="toolbar">
+      <div class="left">
+        <button id="addRow">➕ Add Row</button>
+        <button id="deleteRow" class="secondary">🗑️ Delete Selected Rows</button>
+        <button id="addCol" class="secondary">➕ Add Column</button>
+
+        <label for="deleteColSelect" style="margin-left:8px">Delete column:</label>
+        <select id="deleteColSelect"><option value="">-- choose column --</option></select>
+        <button id="deleteCol" class="warn small">Delete Column</button>
+      </div>
+
+      <div class="right">
+        <button id="downloadXLSX">📗 Download XLSX</button>
+        <button id="downloadCSV" class="secondary">📄 Download CSV</button>
+      </div>
+    </div>
+
+    <table id="excelTable">
+      <thead>
+        <tr id="headerRow">
+          <!-- Header cells are editable -->
+          <th><input type="checkbox" id="selectAll" title="Select all rows"></th>
+          <th contenteditable="true">Name</th>
+          <th contenteditable="true">Email</th>
+          <th contenteditable="true">Phone</th>
+          <th contenteditable="true">Address</th>
+          <th contenteditable="true">Remarks</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><input type="checkbox" class="rowCheck"></td>
+          <td><input type="text" placeholder="Enter name"></td>
+          <td><input type="email" placeholder="Enter email"></td>
+          <td><input type="text" placeholder="Enter phone"></td>
+          <td><input type="text" placeholder="Enter address"></td>
+          <td><input type="text" placeholder="Remarks"></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="note">Tip: Click any header cell to rename the column. Use <strong>Add Column</strong> to append a new editable column at the right. Use the dropdown to pick which column to delete.</div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script>
+    const tbody = document.querySelector('#excelTable tbody');
+    const headerRow = document.getElementById('headerRow');
+    const addRowBtn = document.getElementById('addRow');
+    const deleteRowBtn = document.getElementById('deleteRow');
+    const selectAll = document.getElementById('selectAll');
+    const addColBtn = document.getElementById('addCol');
+    const deleteColBtn = document.getElementById('deleteCol');
+    const deleteColSelect = document.getElementById('deleteColSelect');
+    const downloadXLSX = document.getElementById('downloadXLSX');
+    const downloadCSV = document.getElementById('downloadCSV');
+
+    // Initialize delete column dropdown
+    function refreshDeleteColOptions(){
+      // Clear options, keep placeholder
+      deleteColSelect.innerHTML = '<option value="">-- choose column --</option>';
+      const ths = Array.from(headerRow.querySelectorAll('th'));
+      // skip first th (checkbox column)
+      ths.slice(1).forEach((th, idx)=>{
+        const title = th.textContent.trim() || `Column ${idx+1}`;
+        const opt = document.createElement('option'); opt.value = idx+1; opt.textContent = title;
+        deleteColSelect.appendChild(opt);
+      });
+    }
+
+    // Make header cells editable: already contenteditable in markup.
+    // But when header text changes, refresh dropdown options
+    headerRow.addEventListener('input', (e)=>{
+      // debounce not necessary for small tables
+      refreshDeleteColOptions();
+    });
+
+    // Add a new row at the end
+    addRowBtn.addEventListener('click', ()=>{
+      const newRow = document.createElement('tr');
+      // create a checkbox cell
+      const cols = headerRow.querySelectorAll('th').length;
+      let cellsHtml = `<td><input type='checkbox' class='rowCheck'></td>`;
+      // for remaining header columns, create input cells
+      for(let i=1;i<cols;i++){
+        cellsHtml += `<td><input type='text' placeholder=''></td>`;
+      }
+      newRow.innerHTML = cellsHtml;
+      tbody.appendChild(newRow);
+    });
+
+    // Delete selected rows
+    deleteRowBtn.addEventListener('click', ()=>{
+      const checks = Array.from(document.querySelectorAll('.rowCheck:checked'));
+      if(checks.length===0) return alert('No rows selected');
+      if(!confirm(`Delete ${checks.length} selected row(s)?`)) return;
+      checks.forEach(ch=>ch.closest('tr').remove());
+    });
+
+    // selectAll checkbox behavior
+    selectAll.addEventListener('change', ()=>{
+      const checks = document.querySelectorAll('.rowCheck');
+      checks.forEach(c=>c.checked = selectAll.checked);
+    });
+
+    // Add Column at the right end
+    addColBtn.addEventListener('click', ()=>{
+      const colCount = headerRow.querySelectorAll('th').length;
+      // add header cell (editable)
+      const th = document.createElement('th'); th.contentEditable = 'true'; th.textContent = `Column ${colCount}`;
+      headerRow.appendChild(th);
+      // add a cell to each existing row
+      Array.from(tbody.rows).forEach(r=>{
+        const td = document.createElement('td');
+        const input = document.createElement('input'); input.type='text'; input.placeholder='';
+        td.appendChild(input);
+        r.appendChild(td);
+      });
+      refreshDeleteColOptions();
+    });
+
+    // Delete selected column (by index from dropdown)
+    deleteColBtn.addEventListener('click', ()=>{
+      const val = deleteColSelect.value;
+      if(!val) return alert('Please choose a column to delete');
+      const colIndex = Number(val); // matches th index in row
+      const ths = headerRow.querySelectorAll('th');
+      if(colIndex < 1 || colIndex >= ths.length) return alert('Invalid column');
+      const colName = ths[colIndex].textContent.trim() || `Column ${colIndex}`;
+      if(!confirm(`Delete column "${colName}" and its data? This cannot be undone.`)) return;
+      // remove header cell
+      headerRow.removeChild(ths[colIndex]);
+      // remove each td in tbody at that index
+      Array.from(tbody.rows).forEach(r=>{
+        if(r.cells.length>colIndex) r.removeChild(r.cells[colIndex]);
+      });
+      refreshDeleteColOptions();
+    });
+
+    // Collect table data based on current headers
+    function collectTableData(){
+      const ths = Array.from(headerRow.querySelectorAll('th'));
+      // headers list (skip first checkbox column)
+      const headers = ths.slice(1).map(h=>h.textContent.trim() || '');
+      const rows = Array.from(tbody.rows);
+      const data = rows.map(r=>{
+        const rowCells = Array.from(r.querySelectorAll('td'));
+        const obj = {};
+        // start from index 1 (skip checkbox cell)
+        for(let i=1;i<rowCells.length;i++){
+          const headerName = headers[i-1] || `Column${i}`;
+          const input = rowCells[i].querySelector('input');
+          obj[headerName] = input ? input.value : (rowCells[i].textContent||'');
+        }
+        return obj;
+      }).filter(r=>Object.values(r).some(v=>v && v.toString().trim() !== ''));
+      return { headers, data };
+    }
+
+    // Export to XLSX
+    downloadXLSX.addEventListener('click', ()=>{
+      const { headers, data } = collectTableData();
+      if(data.length===0) return alert('No data to export');
+      // use SheetJS with headers preserved
+      const ws = XLSX.utils.json_to_sheet(data, {header: headers});
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
+      XLSX.writeFile(wb, 'FormData.xlsx');
+    });
+
+    // Export to CSV
+    downloadCSV.addEventListener('click', ()=>{
+      const { headers, data } = collectTableData();
+      if(data.length===0) return alert('No data to export');
+      const ws = XLSX.utils.json_to_sheet(data, {header: headers});
+      const csv = XLSX.utils.sheet_to_csv(ws);
+      const blob = new Blob([csv],{type:'text/csv'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = 'FormData.csv'; a.click(); URL.revokeObjectURL(url);
+    });
+
+    // initial setup
+    refreshDeleteColOptions();
+
+    // keep delete dropdown updated if columns renamed via keyboard
+    document.addEventListener('keydown', (e)=>{
+      // small optimization: refresh only on Enter or Tab or when editing headers
+      if(e.key === 'Enter' || e.key === 'Tab') refreshDeleteColOptions();
+    });
+
+  </script>
+</body>
+</html>
